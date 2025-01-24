@@ -334,7 +334,6 @@ name = "y86fmt"
 version = "0.1.0"
 dependencies = [
  "clap",
- "regex",
  "tree-sitter",
  "tree-sitter-y86",
 ]

@@ -5,6 +5,5 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.26", features = ["derive"] }
-regex = "1.11.1"
 tree-sitter = "0.24.7"
 tree-sitter-y86 = { git = "https://github.com/Kensaa/tree-sitter-y86", version = "0.1.0" }
