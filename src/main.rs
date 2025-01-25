@@ -244,7 +244,7 @@ fn main() {
     }
 
     let output = output.join("\n");
-    print!("{}", output);
+    println!("{}", output);
 }
 
 fn get_string(source_code: &Vec<u8>, node: &Node) -> String {
@@ -277,7 +277,10 @@ fn get_instruction_args(source_code: &Vec<u8>, node: &Node) -> (String, String, 
         }
     }
 
-    return (identifier, args[0].clone(), args[1].clone());
+    let empty = "".to_string();
+    let arg1 = args.get(0).unwrap_or(&empty);
+    let arg2 = args.get(1).unwrap_or(&empty);
+    return (identifier, arg1.clone(), arg2.clone());
 }
 
 /// instr_length: The length of the instruction part (contains the whitespace before the 1st arg)
