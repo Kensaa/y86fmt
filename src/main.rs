@@ -27,15 +27,9 @@ fn main() {
 
     if !settings.disable_backup {
         let mut backup_folder = project_dirs.cache_dir().to_path_buf();
-        if !backup_folder.exists() {
-            fs::create_dir(&backup_folder).expect(&format!(
-                "failed to create cache folder at {}",
-                backup_folder.to_str().unwrap()
-            ));
-        }
         backup_folder.push("backup");
         if !backup_folder.exists() {
-            fs::create_dir(&backup_folder).expect(&format!(
+            fs::create_dir_all(&backup_folder).expect(&format!(
                 "failed to create backup folder at {}",
                 backup_folder.to_str().unwrap()
             ));
