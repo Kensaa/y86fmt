@@ -100,34 +100,76 @@ fn main() {
     blocks.push(current_block);
 
     let mut output: Vec<String> = Vec::new();
+
+    // unpack line into arrays of children and split line that should be
     for block in blocks {
         let mut separated_block = Vec::with_capacity(block.len());
         for node in block {
             match node.child_count() {
                 0 => separated_block.push(Vec::new()),
                 1 => separated_block.push(Vec::from([node.child(0).unwrap()])),
-                2 => {
-                    // if a line has 2 tokens, it must be splited
-                    // exept:
+                _ => {
+                    let mut children = Vec::new();
+                    let mut cursor = node.walk();
+                    cursor.goto_first_child();
+                    loop {
+                        let child = cursor.node();
+                        children.push(child);
+
+                        if !cursor.goto_next_sibling() {
+                            break;
+                        }
+                    }
+
+                    // if a line has more than one token, it must be splited into multiple lines, except:
                     // - label + directive
                     // - anything + comment
-                    let child_1 = node.child(0).unwrap();
-                    let child_2 = node.child(1).unwrap();
-                    if child_2.kind() == "comment" {
-                        separated_block.push(Vec::from([child_1, child_2]));
-                    } else if child_1.kind() == "label" && child_2.kind() == "directive" {
-                        separated_block.push(Vec::from([child_1, child_2]));
-                    } else {
-                        separated_block.push(Vec::from([child_1]));
-                        separated_block.push(Vec::from([child_2]));
+                    let mut end_comment = None;
+                    if children.last().unwrap().kind() == "comment" {
+                        // if the last token of the line is a comment, remove it, process the rest then re-add it at the end
+                        end_comment = Some(children.pop().unwrap());
+                    }
+
+                    let children_count = children.len();
+                    let mut child_iter = children.into_iter().enumerate();
+
+                    while let Some((child_index, child)) = child_iter.next() {
+                        let is_last = child_index == children_count - 1;
+                        if is_last {
+                            // the current child is the last, add the comment we maybe removed before
+                            let mut line = Vec::from([child]);
+                            if end_comment.is_some() {
+                                line.push(end_comment.unwrap());
+                            }
+                            separated_block.push(line);
+                        } else {
+                            if child.kind() == "label" {
+                                let (next_index, next) = child_iter.next().unwrap();
+                                let next_is_last = next_index == children_count - 1;
+                                if next.kind() == "directive" {
+                                    // label + directive
+                                    let mut line = Vec::from([child, next]);
+                                    if next_is_last {
+                                        if end_comment.is_some() {
+                                            line.push(end_comment.unwrap());
+                                        }
+                                    }
+                                    separated_block.push(line);
+                                } else {
+                                    separated_block.push(Vec::from([child]));
+
+                                    let mut line = Vec::from([next]);
+                                    if next_is_last {
+                                        if end_comment.is_some() {
+                                            line.push(end_comment.unwrap());
+                                        }
+                                    }
+                                    separated_block.push(line);
+                                }
+                            }
+                        }
                     }
                 }
-                n => panic!(
-                    "invalid line with {} token ({}-{})",
-                    n,
-                    node.start_position(),
-                    node.end_position()
-                ),
             }
         }
 
@@ -146,107 +188,65 @@ fn main() {
         }
 
         for (line_index, line) in separated_block.iter().enumerate() {
-            match line.len() {
-                0 => {
-                    // empty line (I dont know what to do with those for now)
-                    output.push(String::new());
-                }
-                1 => {
-                    // label, directive, instruction or comment
-                    // single subnode, no iteration needed
-                    let sub_node = line[0];
-                    match sub_node.kind() {
+            if line.is_empty() {
+                // empty line (not changed for now)
+                output.push(String::new());
+            } else {
+                let mut output_parts = Vec::new();
+                for (token_index, token) in line.iter().enumerate() {
+                    match token.kind() {
                         "label" | "directive" => {
-                            // no indentation
-                            output.push(get_string(&data, &sub_node));
-                        }
-                        "instruction" => {
-                            // always indented
-                            output.push(format!(
-                                "\t{}",
-                                format_instruction(
-                                    &data,
-                                    &sub_node,
-                                    instr_length,
-                                    first_arg_length,
-                                    second_arg_length
-                                )
-                            ))
+                            // label and directive are never indented
+                            output_parts.push(get_string(&data, token));
                         }
                         "comment" => {
                             let comment = format!(
                                 "# {}",
                                 get_string(
                                     &data,
-                                    &sub_node.child(1).expect("failed to get comment content")
+                                    &token.child(1).expect("failed to get comment content")
                                 )
                                 .trim()
                             );
-                            if line_index == 0 {
-                                // first line of the block => not indented
-                                output.push(comment);
-                            } else {
-                                let prev_line = &separated_block[line_index - 1];
-                                if prev_line.iter().any(|node| node.kind() == "directive") {
-                                    // previous line contains a directive, so don't indent
-                                    // this part i'm not certain of, may need change
-                                    output.push(comment);
+                            if token_index == 0 {
+                                // comment is the first token in a line ==> comment alone on a line (because of previous loop)
+                                if line_index == 0 {
+                                    // first line of the block => not indented
+                                    output_parts.push(comment);
                                 } else {
-                                    output.push(format!("\t{}", comment));
+                                    let prev_line = &separated_block[line_index - 1];
+                                    if prev_line.iter().any(|node| node.kind() == "directive") {
+                                        // previous line contains a directive, so don't indent
+                                        // this part i'm not certain of, may need change
+                                        output_parts.push(comment);
+                                    } else {
+                                        // otherwise comment is always formatt
+                                        output_parts.push(format!("\t{}", comment));
+                                    }
                                 }
+                            } else {
+                                // comment is after another token ==> not indented
+                                output_parts.push(comment);
                             }
+                        }
+                        "instruction" => {
+                            // instruction are always indented
+                            output_parts.push(format!(
+                                "\t{}",
+                                format_instruction(
+                                    &data,
+                                    &token,
+                                    instr_length,
+                                    first_arg_length,
+                                    second_arg_length
+                                )
+                            ))
                         }
                         kind => panic!("invalid kind {}", kind),
                     }
                 }
-                2 => {
-                    // if there is two element, then they should be on the same line (because of the previous loop)
-                    let node_1 = line[0];
-                    let node_2 = line[1];
-                    if node_1.kind() == "label" && node_2.kind() == "directive" {
-                        // label + directive case ==> not indented
-                        output.push(format!(
-                            "{} {}",
-                            get_string(&data, &node_1),
-                            get_string(&data, &node_2)
-                        ))
-                    } else {
-                        // comment case, node2 is a comment
-                        let comment = format!(
-                            "# {}",
-                            get_string(
-                                &data,
-                                &node_2.child(1).expect("failed to get comment content")
-                            )
-                            .trim()
-                        );
-                        match node_1.kind() {
-                            "label" | "directive" => {
-                                // same as before, not indented
-                                output.push(format!("{} {}", get_string(&data, &node_1), comment))
-                            }
-                            "instruction" => {
-                                // instruction is indented
-                                output.push(format!(
-                                    "\t{} {}",
-                                    format_instruction(
-                                        &data,
-                                        &node_1,
-                                        instr_length,
-                                        first_arg_length,
-                                        second_arg_length
-                                    ),
-                                    comment
-                                ))
-                            }
-                            kind => panic!("invalid kind {}", kind),
-                        }
-                    }
-                }
-                n => panic!(
-                    "found {} tokens on the same line, that should not happen",
-                    n
-                ),
+                let output_line = output_parts.join(" ");
+                output.push(output_line);
             }
         }
     }
