@@ -260,6 +260,9 @@ fn get_instruction_args(source_code: &Vec<u8>, node: &Node) -> (String, String, 
         &node.child(0).expect("failed to get instruction identifier"),
     );
 
+    if node.child_count() == 1 {
+        return (identifier, "".to_string(), "".to_string());
+    }
     let args_node = node.child(1).expect("failed to get instruction args");
     let mut args = Vec::new();
     let mut cursor = args_node.walk();
