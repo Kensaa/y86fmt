@@ -1,5 +1,6 @@
 use clap::Parser;
 use core::panic;
+use directories::ProjectDirs;
 use std::{
     fs::{self, File},
     io::{Read, Write},
@@ -10,36 +11,29 @@ use tree_sitter::Node;
 
 #[derive(Parser)]
 struct Cli {
-    #[arg(help = "Path to the file to format", id = "filename", value_parser=parse_file)]
-    filename: String,
     #[arg(long, help = "Flag to disable file backup")]
     disable_backup: bool,
 }
 
-fn parse_file(filename: &str) -> Result<String, String> {
-    match File::open(filename) {
-        Err(_) => Err(format!("file \"{}\" does not exists", filename)),
-        Ok(_) => Ok(filename.to_string()),
-    }
-}
-
 fn main() {
+    let project_dirs = ProjectDirs::from("fr", "kensa", "y86fmt").unwrap();
     let settings = Cli::parse();
+    let mut stdin = std::io::stdin();
 
-    let file_path = std::path::Path::new(&settings.filename);
-    let file_directory = file_path
-        .parent()
-        .expect("failed to get file parent directory");
-    let filename = file_path
-        .file_name()
-        .expect("failed to get filename")
-        .to_str()
-        .unwrap()
-        .to_string();
+    let mut data = Vec::new();
+    stdin
+        .read_to_end(&mut data)
+        .expect("failed to read from stdin");
 
     if !settings.disable_backup {
-        let mut backup_folder = file_directory.to_path_buf();
-        backup_folder.push(".y86fmt-backup");
+        let mut backup_folder = project_dirs.cache_dir().to_path_buf();
+        if !backup_folder.exists() {
+            fs::create_dir(&backup_folder).expect(&format!(
+                "failed to create cache folder at {}",
+                backup_folder.to_str().unwrap()
+            ));
+        }
+        backup_folder.push("backup");
         if !backup_folder.exists() {
             fs::create_dir(&backup_folder).expect(&format!(
                 "failed to create backup folder at {}",
@@ -51,14 +45,12 @@ fn main() {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        let file_backup = backup_folder.join(format!("{}-{}", time, filename));
-        fs::copy(&file_path, file_backup).expect("failed to make copy of file");
+        let backup_file = backup_folder.join(format!("{}.ys", time));
+        let mut backup_file = File::create(backup_file).expect("failed to create backup file");
+        backup_file
+            .write_all(&data)
+            .expect("failed to write to backup file");
     }
-
-    // We are sure that the file exists because of the value parser checking it before
-    let mut file = File::open(&file_path).unwrap();
-    let mut data = Vec::new();
-    file.read_to_end(&mut data).expect("failed to read file");
 
     let mut parser = tree_sitter::Parser::new();
     parser
@@ -251,10 +243,8 @@ fn main() {
         }
     }
 
-    let mut output_file = File::create(&file_path).expect("failed to create output file");
-    output_file
-        .write_all(output.join("\n").as_bytes())
-        .expect("failed to write to file");
+    let output = output.join("\n");
+    print!("{}", output);
 }
 
 fn get_string(source_code: &Vec<u8>, node: &Node) -> String {
@@ -270,7 +260,7 @@ fn get_instruction_args(source_code: &Vec<u8>, node: &Node) -> (String, String, 
         &node.child(0).expect("failed to get instruction identifier"),
     );
 
-    let args_node = node.child(1).unwrap();
+    let args_node = node.child(1).expect("failed to get instruction args");
     let mut args = Vec::new();
     let mut cursor = args_node.walk();
 
