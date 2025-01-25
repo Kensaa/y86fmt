@@ -200,13 +200,17 @@ fn main() {
                                     // first line of the block => not indented
                                     output_parts.push(comment);
                                 } else {
-                                    let prev_line = &separated_block[line_index - 1];
-                                    if prev_line.iter().any(|node| node.kind() == "directive") {
-                                        // previous line contains a directive, so don't indent
-                                        // this part i'm not certain of, may need change
+                                    let prev_line = &separated_block.get(line_index + 1);
+                                    if prev_line.is_some()
+                                        && prev_line
+                                            .unwrap()
+                                            .iter()
+                                            .any(|node| node.kind() == "directive")
+                                    {
+                                        // next line contains a directive, so don't indent
                                         output_parts.push(comment);
                                     } else {
-                                        // otherwise comment is always formatt
+                                        // otherwise comment is always indented
                                         output_parts.push(format!("\t{}", comment));
                                     }
                                 }
