@@ -10,7 +10,7 @@ on:
 jobs:
   check-version:
     name: Version Checking
-    runs-on: ubuntu
+    runs-on: ubuntu-latest
     outputs:
       project_version: ${{ steps.project_version.outputs.version }}
       tag: ${{ steps.tag.outputs.tag }}
