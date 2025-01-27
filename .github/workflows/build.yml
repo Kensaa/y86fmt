@@ -18,6 +18,11 @@ jobs:
        - name: checkout
          uses: actions/checkout@v4
 
+       - name: fetch
+         run: |
+          git fetch --tags
+          git fetch --prune --unshallow
+
        - name: get Git tag
          id: tag
          run: | 
