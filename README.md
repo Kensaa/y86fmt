@@ -4,9 +4,11 @@
 - The Rust toolchain is required to compile and install the formatter.
 
 ## Installation
+You can install y86fmt using cargo:
 ```bash
 cargo install --git https://github.com/kensaa/y86fmt
 ```
+Or you can install it manually by downloading the executable from the [Releases](https://github.com/Kensaa/y86fmt/releases/latest)
 
 ## Usage
 Like a normal formatter, it takes input from `STDIN` and outputs to `STDOUT`.
@@ -39,6 +41,8 @@ If you'd like to format `.ys` files in VSCode, you'll need to install a few exte
          "editor.defaultFormatter": "jkillian.custom-local-formatters"
      }
      ```
+     
+     * Note: if you downloaded the formatter using the releases, you need to change the command if the config to add the path to the file, or add the formatter to the $PATH environment variable
 
 *(One day, I plan to create a dedicated VSCode extension to handle this out of the box—but I’m lazy for now.)*
 
