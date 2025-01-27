@@ -28,7 +28,7 @@ jobs:
        - name: get Project Version
          id: project_version
          run: |
-          version=$(cargo metadata --no-deps --format-version 1 | jq ".packages[].version")
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r ".packages[].version")
           echo $version
           echo "version=$version" >> "$GITHUB_OUTPUT"
   
@@ -57,7 +57,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:  
           files: |
-            target/release/y86fmt*.exe
+            target/release/y86fmt.exe
+            target/release/y86fmt
           draft: false
           prerelease: false
           tag_name: v${{ needs.check-version.outputs.project_version }}
