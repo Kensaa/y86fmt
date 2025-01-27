@@ -21,7 +21,7 @@ jobs:
        - name: get Git tag
          id: tag
          run: | 
-          echo "version=${git tag -l --sort -v:refname | head -n 1 | cut -b 2-}" >> "$GITHUB_OUTPUT"
+          echo "version=$(git tag -l --sort -v:refname | head -n 1 | cut -b 2-)" >> "$GITHUB_OUTPUT"
 
        - name: get Project Version
          id: project_version
