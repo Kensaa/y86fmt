@@ -35,7 +35,7 @@ jobs:
           - windows-latest
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
-    if: ${{ needs.version.outputs.project_version != needs.version.outputs.tag || github.event_name == "workflow_dispatch" }}
+    if: ${{ needs.version.outputs.project_version != needs.version.outputs.tag }}
     steps:
       - name: checkout
         uses: actions/checkout@v4
