@@ -21,11 +21,16 @@ jobs:
        - name: get Git tag
          id: tag
          run: | 
-          echo "version=$(git tag -l --sort -v:refname | head -n 1 | cut -b 2-)" >> "$GITHUB_OUTPUT"
+          version=$(git tag -l --sort -v:refname | head -n 1 | cut -b 2-)
+          echo $version
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
        - name: get Project Version
          id: project_version
-         run: echo "tag=$(cargo metadata --no-deps --format-version 1 | jq \".packages[].version\")" >> "$GITHUB_OUTPUT"
+         run: |
+          tag=$(cargo metadata --no-deps --format-version 1 | jq ".packages[].version")
+          echo $tag
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
   
   build:
     name: Build
