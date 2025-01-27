@@ -57,3 +57,6 @@ jobs:
         with:  
           files: |
             target/release/y86fmt*.exe
+          draft: false
+          prerelease: false
+          tag_name: v${{ needs.check-version.outputs.project_version }}
