@@ -35,6 +35,7 @@ jobs:
           - windows-latest
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
+    needs: check-version
     if: ${{ needs.version.outputs.project_version != needs.version.outputs.tag }}
     steps:
       - name: checkout
