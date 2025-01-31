@@ -1,7 +1,7 @@
 # Y86 Formatter
 
 ## Requirements
-- The Rust toolchain is required to compile and install the formatter.
+- The Rust toolchain is required if you want to compile the formatter yourself
 
 ## Installation
 You can install y86fmt using cargo:
