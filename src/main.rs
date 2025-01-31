@@ -235,7 +235,9 @@ fn main() {
                         kind => panic!("invalid kind {}", kind),
                     }
                 }
-                let output_line = output_parts.join(" ");
+                let mut output_line = output_parts.join(" ");
+                // we remove the trailing whitespaces at the end of the line
+                output_line = output_line.trim_end().to_string();
                 output.push(output_line);
             }
         }
@@ -304,8 +306,9 @@ fn format_instruction(
             arg1 = pad(&arg1, first_arg_length + 1);
             return format!("{} {} {}", identifier, arg1, arg2);
         } else {
-            arg1 = pad(&arg1, first_arg_length);
-            return format!("{} {}", identifier, arg1);
+            arg1 = pad(&arg1, first_arg_length + 1);
+            arg2 = pad(&arg2, second_arg_length);
+            return format!("{} {} {}", identifier, arg1, arg2);
         }
     }
     return format!("{}", identifier);
