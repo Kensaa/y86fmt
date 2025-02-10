@@ -178,12 +178,43 @@ fn main() {
                 // empty line (not changed for now)
                 output.push(String::new());
             } else {
+                // if to avoid overflow if line is the first
+                let prev_line = if line_index == 0 {
+                    &None
+                } else {
+                    &separated_block.get(line_index - 1)
+                };
+                let prev_output_line = output.last();
+
+                let next_line = &separated_block.get(line_index + 1);
+
                 let mut output_parts = Vec::new();
                 for (token_index, token) in line.iter().enumerate() {
                     match token.kind() {
-                        "label" | "directive" => {
-                            // label and directive are never indented
+                        "label" => {
+                            // label are never indented
                             output_parts.push(get_string(&data, token));
+                        }
+                        "directive" => {
+                            // directive are never indented unless
+                            // if a line contains a directive and so to the previous line, align the directives together
+                            if prev_line.is_some()
+                                && prev_line
+                                    .unwrap()
+                                    .iter()
+                                    .any(|token| token.kind() == "directive")
+                            {
+                                let whitespace_count = prev_output_line.unwrap().chars().position(|char| char == '.').expect("failed to find the start of the directive in the previous line output");
+                                let mut spaces = String::with_capacity(whitespace_count);
+                                for _ in 0..whitespace_count {
+                                    spaces.push(' ');
+                                }
+                                output_parts.push(spaces + &get_string(&data, token));
+                            } else {
+                                output_parts.push(get_string(&data, token));
+                            }
+
+                            // TODO : if a directive ==> check previous line for another directive and align with it (to align .long when defining an array)
                         }
                         "comment" => {
                             let comment = format!(
@@ -200,9 +231,8 @@ fn main() {
                                     // first line of the block => not indented
                                     output_parts.push(comment);
                                 } else {
-                                    let prev_line = &separated_block.get(line_index + 1);
-                                    if prev_line.is_some()
-                                        && prev_line
+                                    if next_line.is_some()
+                                        && next_line
                                             .unwrap()
                                             .iter()
                                             .any(|node| node.kind() == "directive")
