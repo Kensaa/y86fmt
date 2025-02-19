@@ -329,19 +329,12 @@ fn format_instruction(
     let (mut identifier, mut arg1, mut arg2) = get_instruction_args(source_code, node);
 
     identifier = pad(&identifier, instr_length);
-    if arg1 != "" {
-        if arg2 != "" {
-            arg2 = pad(&arg2, second_arg_length);
-            arg1.push(',');
-            arg1 = pad(&arg1, first_arg_length + 1);
-            return format!("{} {} {}", identifier, arg1, arg2);
-        } else {
-            arg1 = pad(&arg1, first_arg_length + 1);
-            arg2 = pad(&arg2, second_arg_length);
-            return format!("{} {} {}", identifier, arg1, arg2);
-        }
+    if arg1 != "" && arg2 != "" {
+        arg1.push(',');
     }
-    return format!("{}", identifier);
+    arg1 = pad(&arg1, first_arg_length + 1);
+    arg2 = pad(&arg2, second_arg_length);
+    return format!("{} {} {}", identifier, arg1, arg2);
 }
 
 fn pad(s: &String, len: usize) -> String {
